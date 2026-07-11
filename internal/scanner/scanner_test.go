@@ -3,14 +3,15 @@ package scanner
 import (
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 )
 
 func TestParseLine(t *testing.T) {
 	cases := []struct {
-		name   string
-		line   string
-		want   *Task
+		name string
+		line string
+		want *Task
 	}{
 		{
 			name: "未完成无now",
@@ -26,6 +27,16 @@ func TestParseLine(t *testing.T) {
 			name: "now在开头",
 			line: "- [ ] #now 修复bug",
 			want: &Task{Text: "修复bug", IsNow: true},
+		},
+		{
+			name: "now非独立tag不匹配",
+			line: "- [ ] 任务#now",
+			want: &Task{Text: "任务#now", IsNow: false},
+		},
+		{
+			name: "now在文本中间",
+			line: "- [ ] 参考 #now 文档",
+			want: &Task{Text: "参考文档", IsNow: true},
 		},
 		{
 			name: "已完成x忽略",
@@ -67,11 +78,6 @@ func TestParseLine(t *testing.T) {
 			line: "- [ ]  ",
 			want: &Task{Text: "", IsNow: false},
 		},
-		{
-			name: "now后缀无空格",
-			line: "- [ ] 任务#now",
-			want: &Task{Text: "任务", IsNow: true},
-		},
 	}
 
 	for _, c := range cases {
@@ -101,9 +107,9 @@ func TestScan(t *testing.T) {
 
 	// 创建测试文件
 	files := map[string]string{
-		"a.md": "- [ ] 任务一 #now\n- [x] 已完成\n- [ ] 任务二\n- [-] 取消\n",
-		"b.md": "- [ ] #now 紧急任务\n普通文本\n  - [ ] 缩进任务\n",
-		"sub/c.md": "- [X] 完成\n- [ ] 子目录任务 #now\n",
+		"a.md":       "- [ ] 任务一 #now\n- [x] 已完成\n- [ ] 任务二\n- [-] 取消\n",
+		"b.md":       "- [ ] #now 紧急任务\n普通文本\n  - [ ] 缩进任务\n",
+		"sub/c.md":   "- [X] 完成\n- [ ] 子目录任务 #now\n",
 		"readme.txt": "- [ ] 不是markdown\n",
 	}
 	for path, content := range files {
@@ -159,5 +165,23 @@ func TestScanHiddenDir(t *testing.T) {
 	}
 	if res.Total != 0 {
 		t.Errorf("隐藏目录不应被扫描，得到 %d", res.Total)
+	}
+}
+
+func TestScanLongLine(t *testing.T) {
+	dir := t.TempDir()
+	// 2MB 超长行 + 正常 todo 行，验证超长行不会导致整文件解析失败
+	long := strings.Repeat("a", 2*1024*1024)
+	content := long + "\n- [ ] 长行后的任务 #now\n"
+	full := filepath.Join(dir, "big.md")
+	if err := os.WriteFile(full, []byte(content), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	res, err := Scan(dir)
+	if err != nil {
+		t.Fatalf("超长行不应导致扫描失败: %v", err)
+	}
+	if res.Total != 1 || res.Now != 1 {
+		t.Errorf("期望 1/1，得到 %d/%d", res.Total, res.Now)
 	}
 }

@@ -12,13 +12,14 @@ import (
 
 // Watcher 递归监听目录变化，防抖触发回调。
 type Watcher struct {
-	w       *fsnotify.Watcher
-	root    string
+	w        *fsnotify.Watcher
+	root     string
 	onChange func()
-	stop    chan struct{}
-	wg      sync.WaitGroup
-	mu      sync.Mutex
-	timer   *time.Timer
+	stop     chan struct{}
+	stopOnce sync.Once
+	wg       sync.WaitGroup
+	mu       sync.Mutex
+	timer    *time.Timer
 	debounce time.Duration
 }
 
@@ -31,9 +32,9 @@ func New(root string, onChange func()) (*Watcher, error) {
 	w := &Watcher{
 		w:        fw,
 		root:     filepath.Clean(root),
-		onChange:  onChange,
-		stop:      make(chan struct{}),
-		debounce:  300 * time.Millisecond,
+		onChange: onChange,
+		stop:     make(chan struct{}),
+		debounce: 300 * time.Millisecond,
 	}
 	if err := w.addRecursive(w.root); err != nil {
 		fw.Close()
@@ -95,15 +96,32 @@ func (w *Watcher) schedule() {
 		w.timer.Stop()
 	}
 	w.timer = time.AfterFunc(w.debounce, func() {
-		if w.onChange != nil {
-			w.onChange()
+		// Close 后不再触发回调，即使 timer 已 fire
+		select {
+		case <-w.stop:
+			return
+		default:
+		}
+		w.mu.Lock()
+		cb := w.onChange
+		w.mu.Unlock()
+		if cb != nil {
+			cb()
 		}
 	})
 }
 
-// Close 停止监听并释放资源。
+// Close 停止监听并释放资源。可安全重复调用。
 func (w *Watcher) Close() {
-	close(w.stop)
-	_ = w.w.Close()
+	w.stopOnce.Do(func() {
+		close(w.stop)
+		_ = w.w.Close()
+	})
+	w.mu.Lock()
+	if w.timer != nil {
+		w.timer.Stop()
+		w.timer = nil
+	}
+	w.mu.Unlock()
 	w.wg.Wait()
 }

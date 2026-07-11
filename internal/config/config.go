@@ -8,8 +8,8 @@ import (
 
 // Config 是应用配置，存放在可执行文件旁的 config.json。
 type Config struct {
-	ScanDir  string `json:"scan_dir"`   // 要扫描的 markdown 目录
-	VSCode   string `json:"vscode"`     // VSCode Insider 可执行路径，默认 code-insiders
+	ScanDir string `json:"scan_dir"` // 要扫描的 markdown 目录
+	VSCode  string `json:"vscode"`   // VSCode Insider 可执行路径，默认 code-insiders
 }
 
 // Default 返回带默认值的配置。

@@ -2,6 +2,7 @@ package scanner
 
 import (
 	"bufio"
+	"io"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -26,11 +27,12 @@ type Result struct {
 }
 
 // todoRe 匹配 markdown todo 行：`- [ ]`、`- [x]`、`- [-]`
-// 支持前导空白（缩进）和 `-` 或 `*` 作为列表标记。
+// 支持前导空白（缩进）和 `-`、`*`、`+` 作为列表标记。
 var todoRe = regexp.MustCompile(`^\s*[-*+]\s+\[([ xX-])\]\s+(.*)$`)
 
-// nowTag 是紧急标记。
-const nowTag = "#now"
+// nowRe 匹配独立的 #now 标记（前后须为行首/空白/行尾），
+// 避免把 "任务#now" 或 "参考#now文档" 这类误判为标记。
+var nowRe = regexp.MustCompile(`(?:^|\s)#now(?:$|\s)`)
 
 // Scan 递归扫描 dir 下的 .md 文件，返回未完成 todo 列表。
 // 会读取 dir 根目录的 .gitignore（若存在）进行过滤。
@@ -95,6 +97,7 @@ func Scan(dir string) (*Result, error) {
 }
 
 // scanFile 解析单个 markdown 文件，返回其中的未完成 todo。
+// 使用 bufio.Reader 逐行读取，超长行不会导致整个文件解析失败。
 func scanFile(path string) ([]Task, error) {
 	f, err := os.Open(path)
 	if err != nil {
@@ -103,18 +106,26 @@ func scanFile(path string) ([]Task, error) {
 	defer f.Close()
 
 	var tasks []Task
-	sc := bufio.NewScanner(f)
-	// 支持较长行
-	sc.Buffer(make([]byte, 0, 64*1024), 1024*1024)
+	r := bufio.NewReader(f)
 	lineNum := 0
-	for sc.Scan() {
-		lineNum++
-		t := parseLine(sc.Text(), path, lineNum)
-		if t != nil {
-			tasks = append(tasks, *t)
+	for {
+		line, err := r.ReadString('\n')
+		if len(line) > 0 {
+			lineNum++
+			line = strings.TrimRight(line, "\r\n")
+			if t := parseLine(line, path, lineNum); t != nil {
+				tasks = append(tasks, *t)
+			}
+		}
+		if err != nil {
+			if err == io.EOF {
+				break
+			}
+			// 读取错误时返回已解析到的任务
+			return tasks, err
 		}
 	}
-	return tasks, sc.Err()
+	return tasks, nil
 }
 
 // parseLine 解析单行，若是未完成 todo 则返回 Task，否则返回 nil。
@@ -134,9 +145,10 @@ func parseLine(line, file string, lineNum int) *Task {
 	// status == " " => 未完成
 	text := strings.TrimSpace(m[2])
 	isNow := false
-	if strings.Contains(text, nowTag) {
+	if loc := nowRe.FindStringIndex(text); loc != nil {
 		isNow = true
-		text = strings.TrimSpace(strings.ReplaceAll(text, nowTag, ""))
+		// 删除匹配到的片段（含前后的空白边界），再清理首尾空白
+		text = strings.TrimSpace(text[:loc[0]] + text[loc[1]:])
 	}
 	return &Task{
 		File:  file,

@@ -4,6 +4,7 @@ import (
 	"log"
 
 	"mytodo/internal/config"
+	"mytodo/internal/editor"
 	"mytodo/internal/scanner"
 	"mytodo/internal/tray"
 	"mytodo/internal/watcher"
@@ -13,6 +14,11 @@ func main() {
 	cfg, err := config.Load()
 	if err != nil {
 		log.Printf("加载配置失败: %v，使用默认配置", err)
+	}
+
+	// 校验编辑器可执行文件是否可找到（GUI 启动时 PATH 可能不含 /usr/local/bin）
+	if err := editor.Lookup(cfg.VSCode); err != nil {
+		log.Printf("警告: 找不到 VSCode 可执行文件 %q: %v（请在配置中设置完整路径）", cfg.VSCode, err)
 	}
 
 	app := tray.New(cfg, nil)
@@ -40,6 +46,7 @@ func main() {
 	startWatcher := func() {
 		if w != nil {
 			w.Close()
+			w = nil
 		}
 		dir := app.ScanDir()
 		if dir == "" {
@@ -49,6 +56,7 @@ func main() {
 		w, err = watcher.New(dir, rescan)
 		if err != nil {
 			log.Printf("启动监听失败: %v", err)
+			w = nil
 		}
 	}
 

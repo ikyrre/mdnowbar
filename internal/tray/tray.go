@@ -3,6 +3,7 @@ package tray
 import (
 	_ "embed"
 	"fmt"
+	"log"
 	"os/exec"
 	"path/filepath"
 	"strings"
@@ -20,10 +21,10 @@ var iconData []byte
 
 // App 是状态栏应用控制器。
 type App struct {
-	cfg        config.Config
-	mu         sync.Mutex
-	result     *scanner.Result
-	onRescan   func() // 触发重新扫描的回调
+	cfg         config.Config
+	mu          sync.Mutex
+	result      *scanner.Result
+	onRescan    func() // 触发重新扫描的回调
 	onDirChange func() // 扫描目录变化时的回调
 }
 
@@ -141,12 +142,14 @@ func (a *App) addTaskItem(t scanner.Task) {
 	item := systray.AddMenuItem(label, fmt.Sprintf("%s:%d", t.File, t.Line))
 	go func() {
 		for range item.ClickedCh {
-			_ = editor.OpenAt(a.cfg.VSCode, t.File, t.Line)
+			if err := editor.OpenAt(a.cfg.VSCode, t.File, t.Line); err != nil {
+				log.Printf("打开编辑器失败 (%s:%d): %v", t.File, t.Line, err)
+			}
 		}
 	}()
 }
 
-// formatTaskLabel 格式化任务显示文本：文件名:行号 — 任务文本。
+// formatTaskLabel 格式化任务显示文本：文件名:行号 - 任务文本。
 func formatTaskLabel(t scanner.Task) string {
 	name := filepath.Base(t.File)
 	text := t.Text
@@ -154,7 +157,7 @@ func formatTaskLabel(t scanner.Task) string {
 	if len([]rune(text)) > 40 {
 		text = string([]rune(text)[:37]) + "…"
 	}
-	return fmt.Sprintf("%s:%d — %s", name, t.Line, text)
+	return fmt.Sprintf("%s:%d - %s", name, t.Line, text)
 }
 
 // handleSetDir 处理设置扫描目录。
@@ -169,7 +172,9 @@ func (a *App) handleSetDir(item *systray.MenuItem) {
 		onDirChange := a.onDirChange
 		onRescan := a.onRescan
 		a.mu.Unlock()
-		_ = config.Save(a.cfg)
+		if err := config.Save(a.cfg); err != nil {
+			log.Printf("保存配置失败: %v", err)
+		}
 		if onDirChange != nil {
 			onDirChange()
 		}
@@ -182,8 +187,11 @@ func (a *App) handleSetDir(item *systray.MenuItem) {
 // handleRefresh 处理手动刷新。
 func (a *App) handleRefresh(item *systray.MenuItem) {
 	for range item.ClickedCh {
-		if a.onRescan != nil {
-			a.onRescan()
+		a.mu.Lock()
+		onRescan := a.onRescan
+		a.mu.Unlock()
+		if onRescan != nil {
+			onRescan()
 		}
 	}
 }

@@ -12,3 +12,10 @@ func OpenAt(vscodePath, file string, line int) error {
 	cmd := exec.Command(vscodePath, "--goto", target)
 	return cmd.Start()
 }
+
+// Lookup 校验 vscodePath 在 PATH 中是否可找到。
+// 用于启动时提示用户配置正确路径（GUI 启动时 PATH 可能不含 /usr/local/bin）。
+func Lookup(vscodePath string) error {
+	_, err := exec.LookPath(vscodePath)
+	return err
+}
