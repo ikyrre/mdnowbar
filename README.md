@@ -1,41 +1,43 @@
 # mdnowbar
 
-Mac 状态栏 todo 计数器。扫描指定目录下的 markdown 文件，统计未完成 todo 项数量，在状态栏显示带 `#now` 标记的紧急任务数。
+[English](README.md) | [简体中文](README.zh-CN.md)
 
-## 功能
+A macOS menu bar todo counter. It scans markdown files in a directory, counts unfinished todo items, and shows the number of urgent `#now`-tagged tasks in the menu bar.
 
-- 递归扫描指定目录的 `.md` 文件（尊重 `.gitignore`，跳过隐藏目录）
-- 统计未完成 todo 项（`- [ ]`），排除已完成（`- [x]`）和已取消（`- [-]`）
-- 识别 `#now` 标记的紧急任务
-- 状态栏图标显示 `#now` 任务数量
-- 点击图标显示 `now/total` 及全部 now 任务列表
-- 点击任务项用 VSCode 跳转到对应文件和行
-- 文件变化实时更新（fsnotify + 防抖）
+## Features
 
-## 使用
+- Recursively scans `.md` files (respects `.gitignore`, skips hidden directories)
+- Counts unfinished todos (`- [ ]`), excluding completed (`- [x]`) and cancelled (`- [-]`)
+- Recognizes `#now`-tagged urgent tasks
+- Menu bar icon shows the number of `#now` tasks
+- Click the icon to see `now/total` and the full list of now tasks
+- Click a task to jump to its file and line in VSCode
+- Real-time updates on file changes (fsnotify + debounce)
+
+## Usage
 
 ```bash
-# 编译
+# Build
 go build -o mdnowbar .
 
-# 运行
+# Run
 ./mdnowbar
 ```
 
-首次运行后，点击状态栏图标 ->「设置扫描目录…」选择要扫描的 markdown 目录。
+On first run, click the menu bar icon →「设置扫描目录…」(Set scan directory) to pick the markdown directory to scan.
 
-## markdown 格式
+## Markdown format
 
 ```markdown
-- [ ] 普通未完成任务
-- [ ] 紧急任务 #now
-- [x] 已完成任务
-- [-] 已取消任务
+- [ ] A normal unfinished task
+- [ ] An urgent task #now
+- [x] A completed task
+- [-] A cancelled task
 ```
 
-## 配置
+## Configuration
 
-配置文件 `config.json` 位于可执行文件旁：
+The config file `config.json` lives next to the executable:
 
 ```json
 {
@@ -44,21 +46,21 @@ go build -o mdnowbar .
 }
 ```
 
-`vscode` 字段填写 VSCode 可执行文件名（如 `code`、`code-insiders`），GUI 启动时若 PATH 找不到，可在配置中设置完整路径。
+The `vscode` field is the VSCode executable name (e.g. `code`, `code-insiders`). If PATH can't find it when launched from the GUI, set the full path here.
 
-## 项目结构
+## Project structure
 
 ```
 mdnowbar/
-├── main.go                    # 入口
+├── main.go                    # Entry point
 ├── internal/
-│   ├── scanner/               # markdown 扫描与解析
-│   ├── config/                # 配置读写
-│   ├── editor/                # VSCode 跳转
-│   ├── watcher/               # 文件监听
-│   └── tray/                  # 状态栏 UI
+│   ├── scanner/               # Markdown scanning & parsing
+│   ├── config/                # Config read/write
+│   ├── editor/                # VSCode jump
+│   ├── watcher/               # File watching
+│   └── tray/                  # Menu bar UI
 └── assets/
-    └── icon.png               # 状态栏图标
+    └── icon.png               # Menu bar icon
 ```
 
 ## License
