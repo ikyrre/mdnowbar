@@ -9,9 +9,9 @@ import (
 	"strings"
 	"sync"
 
-	"mytodo/internal/config"
-	"mytodo/internal/editor"
-	"mytodo/internal/scanner"
+	"github.com/ikyrre/mdnowbar/internal/config"
+	"github.com/ikyrre/mdnowbar/internal/editor"
+	"github.com/ikyrre/mdnowbar/internal/scanner"
 
 	"fyne.io/systray"
 )
@@ -67,7 +67,7 @@ func (a *App) Run() {
 func (a *App) onReady() {
 	systray.SetTemplateIcon(iconData, iconData)
 	systray.SetTitle("")
-	systray.SetTooltip("mytodo")
+	systray.SetTooltip("mdnowbar")
 	a.refreshMenu()
 }
 
@@ -122,7 +122,7 @@ func (a *App) refreshMenu() {
 	systray.AddSeparator()
 
 	// 退出
-	mQuit := systray.AddMenuItem("退出", "退出 mytodo")
+	mQuit := systray.AddMenuItem("退出", "退出 mdnowbar")
 	go func() {
 		for range mQuit.ClickedCh {
 			systray.Quit()

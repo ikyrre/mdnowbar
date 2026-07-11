@@ -3,11 +3,11 @@ package main
 import (
 	"log"
 
-	"mytodo/internal/config"
-	"mytodo/internal/editor"
-	"mytodo/internal/scanner"
-	"mytodo/internal/tray"
-	"mytodo/internal/watcher"
+	"github.com/ikyrre/mdnowbar/internal/config"
+	"github.com/ikyrre/mdnowbar/internal/editor"
+	"github.com/ikyrre/mdnowbar/internal/scanner"
+	"github.com/ikyrre/mdnowbar/internal/tray"
+	"github.com/ikyrre/mdnowbar/internal/watcher"
 )
 
 func main() {

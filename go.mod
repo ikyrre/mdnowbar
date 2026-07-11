@@ -1,4 +1,4 @@
-module mytodo
+module github.com/ikyrre/mdnowbar
 
 go 1.24.4
 
