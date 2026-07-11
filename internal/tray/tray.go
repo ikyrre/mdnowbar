@@ -23,6 +23,7 @@ var iconData []byte
 type App struct {
 	cfg         config.Config
 	mu          sync.Mutex
+	menuMu      sync.Mutex // 保护 refreshMenu 的菜单重建序列，避免并发 Reset/Add 交叉
 	result      *scanner.Result
 	onRescan    func() // 触发重新扫描的回调
 	onDirChange func() // 扫描目录变化时的回调
@@ -75,7 +76,11 @@ func (a *App) onExit() {
 }
 
 // refreshMenu 重建整个菜单。
+// 持 menuMu 串行化整个 Reset+Add 序列，避免多个 goroutine 并发重建导致菜单错乱。
 func (a *App) refreshMenu() {
+	a.menuMu.Lock()
+	defer a.menuMu.Unlock()
+
 	systray.ResetMenu()
 
 	a.mu.Lock()

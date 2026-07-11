@@ -1,6 +1,7 @@
 package watcher
 
 import (
+	"log"
 	"os"
 	"path/filepath"
 	"strings"
@@ -21,6 +22,7 @@ type Watcher struct {
 	mu       sync.Mutex
 	timer    *time.Timer
 	debounce time.Duration
+	closed   bool
 }
 
 // New 创建一个递归监听器。onChange 在文件变化（防抖后）被调用。
@@ -46,6 +48,7 @@ func New(root string, onChange func()) (*Watcher, error) {
 }
 
 // addRecursive 递归添加目录及其子目录到监听器。
+// 单个目录 Add 失败不中止遍历，仅记录日志（可能超出系统 watch 限制）。
 func (w *Watcher) addRecursive(dir string) error {
 	return filepath.WalkDir(dir, func(path string, d os.DirEntry, err error) error {
 		if err != nil {
@@ -58,7 +61,10 @@ func (w *Watcher) addRecursive(dir string) error {
 		if path != w.root && strings.HasPrefix(d.Name(), ".") {
 			return filepath.SkipDir
 		}
-		return w.w.Add(path)
+		if err := w.w.Add(path); err != nil {
+			log.Printf("watcher: 添加监听失败 %s: %v（可能超出系统 watch 限制）", path, err)
+		}
+		return nil
 	})
 }
 
@@ -96,15 +102,17 @@ func (w *Watcher) schedule() {
 		w.timer.Stop()
 	}
 	w.timer = time.AfterFunc(w.debounce, func() {
-		// Close 后不再触发回调，即使 timer 已 fire
-		select {
-		case <-w.stop:
-			return
-		default:
-		}
 		w.mu.Lock()
+		if w.closed {
+			w.mu.Unlock()
+			return
+		}
 		cb := w.onChange
+		// 持锁期间 Add，确保 Close 的 wg.Wait 能等到本次回调结束，
+		// 避免 Close 返回后仍有回调执行。
+		w.wg.Add(1)
 		w.mu.Unlock()
+		defer w.wg.Done()
 		if cb != nil {
 			cb()
 		}
@@ -112,12 +120,14 @@ func (w *Watcher) schedule() {
 }
 
 // Close 停止监听并释放资源。可安全重复调用。
+// 返回时保证不会有新的 onChange 回调被触发，已在执行的回调也会等待结束。
 func (w *Watcher) Close() {
 	w.stopOnce.Do(func() {
 		close(w.stop)
 		_ = w.w.Close()
 	})
 	w.mu.Lock()
+	w.closed = true
 	if w.timer != nil {
 		w.timer.Stop()
 		w.timer = nil
