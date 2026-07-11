@@ -1,0 +1,13 @@
+# 构建产物
+mytodo
+mytodo.exe
+
+# macOS
+.DS_Store
+
+# IDE
+.vscode/
+.idea/
+
+# 运行时配置
+config.json
