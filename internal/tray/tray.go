@@ -118,8 +118,9 @@ func (a *App) refreshMenu() {
 	// 退出
 	mQuit := systray.AddMenuItem("退出", "退出 mytodo")
 	go func() {
-		<-mQuit.ClickedCh
-		systray.Quit()
+		for range mQuit.ClickedCh {
+			systray.Quit()
+		}
 	}()
 }
 
