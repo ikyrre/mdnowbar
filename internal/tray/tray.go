@@ -63,7 +63,7 @@ func (a *App) Run() {
 }
 
 func (a *App) onReady() {
-	systray.SetIcon(iconData)
+	systray.SetTemplateIcon(iconData, iconData)
 	systray.SetTitle("")
 	systray.SetTooltip("mytodo")
 	a.refreshMenu()
