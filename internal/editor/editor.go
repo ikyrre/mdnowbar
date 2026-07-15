@@ -64,13 +64,19 @@ func openObsidian(opts OpenOptions) error {
 	if opts.ObsidianAdvancedURI {
 		// 需要 Obsidian Advanced URI 插件；filepath 带扩展名，line 支持行号。
 		u = fmt.Sprintf("obsidian://advanced-uri?vault=%s&filepath=%s&line=%d",
-			url.QueryEscape(vaultName), url.QueryEscape(rel+".md"), opts.Line)
+			uriEscape(vaultName), uriEscape(rel+".md"), opts.Line)
 	} else {
 		// 原生 obsidian://open 不支持行号，仅打开文件。
 		u = fmt.Sprintf("obsidian://open?vault=%s&file=%s",
-			url.QueryEscape(vaultName), url.QueryEscape(rel))
+			uriEscape(vaultName), uriEscape(rel))
 	}
 	return exec.Command("open", u).Start()
+}
+
+// uriEscape 对 obsidian:// 参数值做 URL 编码。
+// 用 %20 编码空格而非 +（Obsidian 的 URI 处理器不会把 + 解码为空格）。
+func uriEscape(s string) string {
+	return strings.ReplaceAll(url.QueryEscape(s), "+", "%20")
 }
 
 // obsidianVaultsFile 返回 obsidian.json（vault 注册表）路径。
