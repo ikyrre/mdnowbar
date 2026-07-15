@@ -11,7 +11,7 @@ Mac 状态栏 todo 计数器。扫描指定目录下的 markdown 文件，统计
 - 识别 `#now` 标记的紧急任务
 - 状态栏图标显示 `#now` 任务数量
 - 点击图标显示 `now/total` 及全部 now 任务列表
-- 点击任务项用 VSCode 跳转到对应文件和行
+- 点击任务项用 VSCode 跳转到对应文件和行，或用 Obsidian 打开
 - 文件变化实时更新（fsnotify + 防抖）
 
 ## 使用
@@ -42,11 +42,17 @@ go build -o mdnowbar .
 ```json
 {
   "scan_dir": "/path/to/your/notes",
-  "vscode": "code"
+  "vscode": "code",
+  "editor": "vscode",
+  "obsidian_vault": "",
+  "obsidian_advanced_uri": false
 }
 ```
 
-`vscode` 字段填写 VSCode 可执行文件名（如 `code`、`code-insiders`），GUI 启动时若 PATH 找不到，可在配置中设置完整路径。
+- `vscode` - VSCode 可执行文件名（如 `code`、`code-insiders`），GUI 启动时若 PATH 找不到，可在配置中设置完整路径。
+- `editor` - 点击任务时用哪个应用打开：`vscode`（默认）或 `obsidian`。
+- `obsidian_vault` - Obsidian vault 名。留空则根据 `scan_dir` 自动从 `~/Library/Application Support/obsidian/obsidian.json` 解析。
+- `obsidian_advanced_uri` - 是否用 `obsidian://advanced-uri` scheme 以跳转到具体**行号**。需安装 [Advanced URI](https://github.com/Vinzent03/obsidian-advanced-uri) 插件。为 `false` 时使用原生 `obsidian://open`，只能打开文件、无法定位行。
 
 ## 项目结构
 

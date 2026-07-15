@@ -11,7 +11,7 @@ A macOS menu bar todo counter. It scans markdown files in a directory, counts un
 - Recognizes `#now`-tagged urgent tasks
 - Menu bar icon shows the number of `#now` tasks
 - Click the icon to see `now/total` and the full list of now tasks
-- Click a task to jump to its file and line in VSCode
+- Click a task to jump to its file and line in VSCode, or open it in Obsidian
 - Real-time updates on file changes (fsnotify + debounce)
 
 ## Usage
@@ -42,11 +42,17 @@ The config file `config.json` lives next to the executable:
 ```json
 {
   "scan_dir": "/path/to/your/notes",
-  "vscode": "code"
+  "vscode": "code",
+  "editor": "vscode",
+  "obsidian_vault": "",
+  "obsidian_advanced_uri": false
 }
 ```
 
-The `vscode` field is the VSCode executable name (e.g. `code`, `code-insiders`). If PATH can't find it when launched from the GUI, set the full path here.
+- `vscode` — VSCode executable name (e.g. `code`, `code-insiders`). If PATH can't find it when launched from the GUI, set the full path here.
+- `editor` — which app opens a task on click: `vscode` (default) or `obsidian`.
+- `obsidian_vault` — Obsidian vault name. Leave empty to auto-resolve from `~/Library/Application Support/obsidian/obsidian.json` by matching `scan_dir`.
+- `obsidian_advanced_uri` — use the `obsidian://advanced-uri` scheme to jump to a specific **line**. Requires the [Advanced URI](https://github.com/Vinzent03/obsidian-advanced-uri) plugin. When `false`, the native `obsidian://open` is used, which opens the file but cannot position the cursor on a line.
 
 ## Project structure
 

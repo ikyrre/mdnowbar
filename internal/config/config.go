@@ -8,14 +8,18 @@ import (
 
 // Config 是应用配置，存放在可执行文件旁的 config.json。
 type Config struct {
-	ScanDir string `json:"scan_dir"` // 要扫描的 markdown 目录
-	VSCode  string `json:"vscode"`   // VSCode Insider 可执行路径，默认 code-insiders
+	ScanDir             string `json:"scan_dir"`             // 要扫描的 markdown 目录
+	VSCode              string `json:"vscode"`               // VSCode 可执行路径，默认 code-insiders
+	Editor              string `json:"editor"`               // 打开方式："vscode"（默认）或 "obsidian"
+	ObsidianVault       string `json:"obsidian_vault"`        // 可选，手动指定 obsidian vault 名；留空则自动解析
+	ObsidianAdvancedURI bool   `json:"obsidian_advanced_uri"` // 是否用 advanced-uri scheme（支持跳行号，需装 Obsidian Advanced URI 插件）
 }
 
 // Default 返回带默认值的配置。
 func Default() Config {
 	return Config{
 		VSCode: "code-insiders",
+		Editor: "vscode",
 	}
 }
 
@@ -47,6 +51,9 @@ func Load() (Config, error) {
 	}
 	if cfg.VSCode == "" {
 		cfg.VSCode = "code-insiders"
+	}
+	if cfg.Editor == "" {
+		cfg.Editor = "vscode"
 	}
 	return cfg, nil
 }

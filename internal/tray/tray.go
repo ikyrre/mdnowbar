@@ -147,7 +147,19 @@ func (a *App) addTaskItem(t scanner.Task) {
 	item := systray.AddMenuItem(label, fmt.Sprintf("%s:%d", t.File, t.Line))
 	go func() {
 		for range item.ClickedCh {
-			if err := editor.OpenAt(a.cfg.VSCode, t.File, t.Line); err != nil {
+			a.mu.Lock()
+			cfg := a.cfg
+			a.mu.Unlock()
+			opts := editor.OpenOptions{
+				Editor:              cfg.Editor,
+				VSCodePath:          cfg.VSCode,
+				ScanDir:             cfg.ScanDir,
+				ObsidianVault:       cfg.ObsidianVault,
+				ObsidianAdvancedURI: cfg.ObsidianAdvancedURI,
+				File:                t.File,
+				Line:                t.Line,
+			}
+			if err := editor.Open(opts); err != nil {
 				log.Printf("打开编辑器失败 (%s:%d): %v", t.File, t.Line, err)
 			}
 		}
