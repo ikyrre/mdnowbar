@@ -9,5 +9,6 @@ mdnowbar.exe
 .vscode/
 .idea/
 
-# 运行时配置
+# 运行时配置与日志
 config.json
+nohup.out
